@@ -1,0 +1,155 @@
+[
+  {
+    "id": "hextris",
+    "name": "Hextris",
+    "iframeUrl": "https://hextris.github.io/hextris/",
+    "description": "An addictive, hexagonal twist on classic puzzle gaming. Blocks slide down towards the central hexagon, and you must rotate it to match colors before they stack up.",
+    "category": "Puzzle",
+    "tags": ["Arcade", "Hexagonal", "Color Match"],
+    "instructions": [
+      "Blocks of different colors fall from the outer screen edges towards the central gray hexagon.",
+      "Match three or more blocks of the same color on a flat surface to make them pop and score points.",
+      "Prevent the blocks from stacking up outside the outer gray boundary."
+    ],
+    "controls": {
+      "Left & Right Arrows": "Rotate Hexagon Left/Right",
+      "Down Arrow": "Fast-drop Blocks",
+      "Spacebar": "Pause Game"
+    },
+    "difficulty": "Medium",
+    "colorTheme": "from-purple-600 to-indigo-700"
+  },
+  {
+    "id": "two-thousand-forty-eight",
+    "name": "2048",
+    "iframeUrl": "https://gabrielecirulli.github.io/2048/",
+    "description": "Combine falling tiles of equal value to reach the legendary 2048 tile. It requires forward planning and strategic tile routing to avoid running out of space.",
+    "category": "Puzzle",
+    "tags": ["Strategy", "Math", "Classic"],
+    "instructions": [
+      "Move all tiles on the grid in any of the four directions (Up, Down, Left, Right).",
+      "When two tiles with the same number touch, they merge into one with the doubled value.",
+      "The challenge is to keep merging tiles until you combine two 1024s into the 2048 tile!"
+    ],
+    "controls": {
+      "Arrow Keys / WASD": "Slide Active Grid",
+      "R Key": "Reset Board"
+    },
+    "difficulty": "Hard",
+    "colorTheme": "from-amber-500 to-orange-600"
+  },
+  {
+    "id": "pacman",
+    "name": "Classic PAC-MAN",
+    "iframeUrl": "https://macek.github.io/google_pacman/",
+    "description": "Relive the legendary 1980 arcade phenomenon in this crisp, responsive HTML5 implementation. Wander down narrow pathways eating dots and pellets.",
+    "category": "Arcade",
+    "tags": ["Retro", "Classic", "Action"],
+    "instructions": [
+      "Steer PAC-MAN around the maze consuming yellow pellets while avoiding the four colorful ghosts.",
+      "Eat large flashing Power Pellets to temporarily weaken the ghosts and consume them for extra points.",
+      "Clear the entire labyrinth of dots to advance to the next level."
+    ],
+    "controls": {
+      "Arrow Keys": "Change Direction",
+      "Swipe (Mobile)": "Navigate Maze"
+    },
+    "difficulty": "Medium",
+    "colorTheme": "from-yellow-400 to-amber-500"
+  },
+  {
+    "id": "tetris",
+    "name": "Neo Tetris",
+    "iframeUrl": "https://jakesgordon.github.io/javascript-tetris/",
+    "description": "The quintessential line-matching puzzle game compiled to pure HTML5 canvas. Arrange falling, rotating geometric shapes into persistent, complete horizontal blocks.",
+    "category": "Puzzle",
+    "tags": ["Vintages", "Reflexes", "Canvas"],
+    "instructions": [
+      "Control the falling tetromino blocks as they descend.",
+      "Rotate and translate blocks so they form complete horizontal rows.",
+      "Completed lines instantly vanish, giving you additional score and vertical space."
+    ],
+    "controls": {
+      "Left & Right Arrows": "Slide Tetromino",
+      "Up Arrow": "Rotate Tetromino",
+      "Down Arrow": "Soft Drop",
+      "Spacebar": "Hard Drop"
+    },
+    "difficulty": "Hard",
+    "colorTheme": "from-blue-600 to-indigo-800"
+  },
+  {
+    "id": "clancy-bird",
+    "name": "Flappy Bird",
+    "iframeUrl": "https://nebez.github.io/floppybird/",
+    "description": "Tap your wings to maintain vertical height and pass through endless sequences of green pipes. Highly punishing, addictive clicker gameplay.",
+    "category": "Arcade",
+    "tags": ["High-Score", "Tap", "Retro"],
+    "instructions": [
+      "Flap your wings to lift the bird upwards.",
+      "Dodge every incoming pipe obstacle. Colliding with any part of a pipe or the ground instantly ends the round.",
+      "Compete for the highest scores as the gap gets narrower!"
+    ],
+    "controls": {
+      "Spacebar / Click": "Flap Wings to Rise"
+    },
+    "difficulty": "Hard",
+    "colorTheme": "from-emerald-500 to-teal-600"
+  },
+  {
+    "id": "space-invaders",
+    "name": "Space Invaders",
+    "iframeUrl": "https://jakesgordon.github.io/javascript-space-invaders/",
+    "description": "Protect the planetary defense grid from endless legions of alien formations. Hide behind temporary barriers and unleash constant laser volleys.",
+    "category": "Shooter",
+    "tags": ["Retro", "Action", "Laser"],
+    "instructions": [
+      "Slide left and right to evade descending alien units.",
+      "Shoot laser beans upward to destroy the fleet. Speed up your dodging as alien formations approach.",
+      "Take shelter behind green barricades while firing back."
+    ],
+    "controls": {
+      "Left / Right Arrows": "Slide Ship Left/Right",
+      "Spacebar": "Fire Laser Cannon"
+    },
+    "difficulty": "Medium",
+    "colorTheme": "from-cyan-500 to-blue-600"
+  },
+  {
+    "id": "breakout",
+    "name": "Vapor Breakout",
+    "iframeUrl": "https://jakesgordon.github.io/javascript-breakout/",
+    "description": "Bounce an elastic energy sphere to smash patterns of glowing bricks. Prevent the ball from slipping under your paddle at all costs.",
+    "category": "Arcade",
+    "tags": ["Physics", "Oldschool", "Paddle"],
+    "instructions": [
+      "Move your horizontal paddle left and right to intercept the bouncing ball.",
+      "Destroy all blocks on the screen to progress to the next brick pattern.",
+      "Angling the block hit controls the kinetic deflection of the ball."
+    ],
+    "controls": {
+      "Left / Right Arrows": "Move Paddle Left/Right",
+      "Spacebar": "Release Ball"
+    },
+    "difficulty": "Easy",
+    "colorTheme": "from-rose-500 to-pink-600"
+  },
+  {
+    "id": "a-dark-room",
+    "name": "A Dark Room",
+    "iframeUrl": "https://adarkroom.doublespeakgames.com/",
+    "description": "An award-winning minimalist text adventure that starts inside a cold, silent room and expands into a deep post-apocalyptic resource manager.",
+    "category": "Adventure",
+    "tags": ["RPG", "Text-Based", "Minimalist"],
+    "instructions": [
+      "Stoke the fire to keep light in the room, then invite mysterious travelers inside.",
+      "Gather lumber, construct tools, build huts, and coordinate a healthy thriving community.",
+      "Venture outside into the sandy wilderness mapping resources, but stay supplied."
+    ],
+    "controls": {
+      "Left Mouse Click": "Execute text selections, fire stoking, and grid travel"
+    },
+    "difficulty": "Medium",
+    "colorTheme": "from-gray-700 to-slate-900"
+  }
+]

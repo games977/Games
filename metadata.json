@@ -1,0 +1,6 @@
+{
+  "name": "Unblocked Games Portal",
+  "description": "A clean, modern games portal that loads lightweight, unblocked web games from a structured JSON configuration in secure nested iframes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
