@@ -1360,6 +1360,7 @@ export default function GunGame({ onPanicActivate }) {
 
     // Place building blocks
     const placeGridStructure = (p, currentSlot) => {
+      const mouse = stateRef.current.mouse;
       const mouseW = mouse.x + stateRef.current.camera.x;
       const mouseH = mouse.y + stateRef.current.camera.y;
 
@@ -1513,6 +1514,7 @@ export default function GunGame({ onPanicActivate }) {
       const p = stateRef.current.player;
       const camera = stateRef.current.camera;
       const activeSlot = stateRef.current.activeSlot;
+      const mouse = stateRef.current.mouse;
 
       // High-fidelity top down limb character renderer
       const drawRealisticHuman = (ctx, x, y, radius, angle, color, activeSlotObj, vx, vy, isPlayer, elevation, lastSwingTime) => {
