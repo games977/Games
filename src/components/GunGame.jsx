@@ -111,6 +111,7 @@ export default function GunGame({ onPanicActivate }) {
   const stateRef = useRef({
     player: {
       x: ARENA_SIZE / 2, y: ARENA_SIZE / 2, radius: 16, speed: 4.5,
+      vx: 0, vy: 0,
       hp: 100, maxHp: 100, shield: 100, maxShield: 100, angle: 0,
       mats: { wood: 500, brick: 350, metal: 200 }, elevation: 0,
       lastSwingTime: 0, lastShotTime: 0, lastPlaceTime: 0,
@@ -267,6 +268,7 @@ export default function GunGame({ onPanicActivate }) {
     // Reset player position and inventory stats
     stateRef.current.player = {
       x: ARENA_SIZE / 2, y: ARENA_SIZE / 2 + 100, radius: 16, speed: 4.5,
+      vx: 0, vy: 0,
       hp: 100, maxHp: 100, shield: 100, maxShield: 100, angle: 0,
       mats: { wood: 999, brick: 999, metal: 999 }, elevation: 0,
       lastSwingTime: 0, lastShotTime: 0, lastPlaceTime: 0,
@@ -288,6 +290,7 @@ export default function GunGame({ onPanicActivate }) {
         name: names[idx],
         x: idx % 2 === 0 ? ARENA_SIZE / 2 - offset : ARENA_SIZE / 2 + offset,
         y: idx < 2 ? ARENA_SIZE / 2 - offset : ARENA_SIZE / 2 + offset,
+        vx: 0, vy: 0,
         radius: 16, hp: 100, shield: 100, angle: Math.PI,
         speed: 4.2, lastShootTime: 0, lastBuildTime: 0, elevation: 0, stateTimer: 0,
         color: `hsl(${(idx * 135) % 360}, 95%, 60%)`, lastSwingTime: 0, respawnTimer: 0
@@ -613,14 +616,31 @@ export default function GunGame({ onPanicActivate }) {
           if (keys["a"] || keys["arrowleft"]) dx = -1;
           if (keys["d"] || keys["arrowright"]) dx = 1;
 
-          let speed = p.speed;
-          if (p.frozenTimer > 0) speed *= 0.45; // slowed by freeze blaster
+          let maxSpeed = p.speed;
+          if (p.frozenTimer > 0) maxSpeed *= 0.45; // slowed by freeze blaster
 
           const mag = Math.sqrt(dx * dx + dy * dy);
           if (mag > 0) {
-            p.x += (dx / mag) * speed;
-            p.y += (dy / mag) * speed;
+            // Apply high fidelity gradual acceleration
+            const accel = 0.55;
+            p.vx = (p.vx || 0) + (dx / mag) * accel;
+            p.vy = (p.vy || 0) + (dy / mag) * accel;
           }
+
+          // Friction deceleration (momentum slide decay)
+          p.vx = (p.vx || 0) * 0.83;
+          p.vy = (p.vy || 0) * 0.83;
+
+          // Velocity limit clamp
+          const currentSpeedVal = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+          if (currentSpeedVal > maxSpeed) {
+            p.vx = (p.vx / currentSpeedVal) * maxSpeed;
+            p.vy = (p.vy / currentSpeedVal) * maxSpeed;
+          }
+
+          // Apply physics position transition
+          p.x += p.vx;
+          p.y += p.vy;
 
           p.x = Math.max(p.radius, Math.min(ARENA_SIZE - p.radius, p.x));
           p.y = Math.max(p.radius, Math.min(ARENA_SIZE - p.radius, p.y));
@@ -741,10 +761,11 @@ export default function GunGame({ onPanicActivate }) {
         if (closestOpponent) {
           b.angle = Math.atan2(closestOpponent.y - b.y, closestOpponent.x - b.x);
 
+          let bDx = 0, bDy = 0;
           if (dMin > 250) {
             // Chase
-            b.x += Math.cos(b.angle) * b.speed * 0.85;
-            b.y += Math.sin(b.angle) * b.speed * 0.85;
+            bDx = Math.cos(b.angle);
+            bDy = Math.sin(b.angle);
 
             // Occasionally build ramps
             const now = Date.now();
@@ -755,9 +776,28 @@ export default function GunGame({ onPanicActivate }) {
           } else {
             // Strafe
             const strafe = b.angle + Math.PI / 2;
-            b.x += Math.cos(strafe) * b.speed * 0.6;
-            b.y += Math.sin(strafe) * b.speed * 0.6;
+            bDx = Math.cos(strafe) * 0.7;
+            bDy = Math.sin(strafe) * 0.7;
           }
+
+          // Apply smooth acceleration properties
+          const botAccel = 0.5;
+          b.vx = (b.vx || 0) + bDx * botAccel;
+          b.vy = (b.vy || 0) + bDy * botAccel;
+
+          // Friction slide decaying
+          b.vx *= 0.83;
+          b.vy *= 0.83;
+
+          // Velocity limit clamp
+          const currentBotSpeed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+          if (currentBotSpeed > b.speed) {
+            b.vx = (b.vx / currentBotSpeed) * b.speed;
+            b.vy = (b.vy / currentBotSpeed) * b.speed;
+          }
+
+          b.x += b.vx;
+          b.y += b.vy;
 
           // Fire random weapons catalog in range
           const now = Date.now();
@@ -765,6 +805,7 @@ export default function GunGame({ onPanicActivate }) {
           if (now - b.lastShootTime >= scaleRate) {
             b.lastShootTime = now;
             const chosenEq = dMin < 120 ? WEAPONS_CATALOG[2] : WEAPONS_CATALOG[1]; // pump shotgun or scar
+            b.activeWeapon = chosenEq;
             shootWeaponsEntities(b, chosenEq);
           }
         }
@@ -1473,6 +1514,157 @@ export default function GunGame({ onPanicActivate }) {
       const camera = stateRef.current.camera;
       const activeSlot = stateRef.current.activeSlot;
 
+      // High-fidelity top down limb character renderer
+      const drawRealisticHuman = (ctx, x, y, radius, angle, color, activeSlotObj, vx, vy, isPlayer, elevation, lastSwingTime) => {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        // 1. ANIMATE WALKING LEGS
+        const currentSpeed = Math.hypot(vx || 0, vy || 0);
+        const isMoving = currentSpeed > 0.15;
+        
+        // Speed up frequency of walking depending on movement speed
+        const freq = isMoving ? 0.015 : 0;
+        const legOscillation = isMoving ? Math.sin(Date.now() * freq * currentSpeed * 1.5) * 10 : 0;
+
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+
+        // Draw Pants/Legs
+        ctx.strokeStyle = "#1e293b"; // Dark slate combat pants overlay
+        
+        // Left leg (moving alternating)
+        ctx.beginPath();
+        ctx.moveTo(-4, -6);
+        ctx.lineTo(-12 + legOscillation, -7);
+        ctx.stroke();
+
+        // Right leg
+        ctx.beginPath();
+        ctx.moveTo(-4, 6);
+        ctx.lineTo(-12 - legOscillation, 7);
+        ctx.stroke();
+
+        // Draw Combat Boots (Feet) projecting slightly beyond the outer radius
+        ctx.fillStyle = "#0f172a"; // obsidian boots
+        ctx.fillRect(-15 + legOscillation, -9, 5, 4);
+        ctx.fillRect(-15 - legOscillation, 5, 5, 4);
+
+        // 2. MAIN BODY TORSO & HELMET/HAT
+        ctx.shadowColor = color;
+        ctx.shadowBlur = elevation === 1 ? 12 : 3;
+        
+        // Draw head/body
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = elevation === 1 ? 3 : 1.5;
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset shadow
+
+        // Tactical chest vest overlay
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(-8, -8, 12, 16);
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(-4, -6, 8, 12);
+
+        // 3. HANDS & SPECIFIC WEAPON HOLDING GRIPS
+        const slot = activeSlotObj || { id: "scar_ar", color: "#2dd4bf" };
+        const isMelee = slot.id === "pickaxe";
+        
+        ctx.save();
+        
+        // Swing rotating modifier if pickaxe is swinging
+        let swingAngleMod = 0;
+        if (isMelee && lastSwingTime) {
+          const elapsed = Date.now() - lastSwingTime;
+          if (elapsed < 280) {
+            swingAngleMod = Math.sin((elapsed / 280) * Math.PI) * 1.2 - 0.6;
+            ctx.rotate(swingAngleMod);
+          }
+        }
+
+        // sleeves
+        ctx.strokeStyle = "rgba(71, 85, 105, 0.9)";
+        ctx.lineWidth = 4;
+        
+        if (isMelee) {
+          // Left hand
+          ctx.beginPath();
+          ctx.moveTo(2, -8);
+          ctx.lineTo(10, -5);
+          ctx.stroke();
+          
+          // Right hand
+          ctx.beginPath();
+          ctx.moveTo(2, 8);
+          ctx.lineTo(16, 3);
+          ctx.stroke();
+
+          // Peach skin fists
+          ctx.fillStyle = "#fddfbc";
+          ctx.beginPath(); ctx.arc(10, -5, 3.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(16, 3, 3.5, 0, Math.PI * 2); ctx.fill();
+
+          // Draw pickaxe shaft
+          ctx.fillStyle = "#475569";
+          ctx.fillRect(8, -1.5, 20, 3);
+          
+          // Chrome double-blade
+          ctx.fillStyle = "#cbd5e1"; 
+          ctx.beginPath();
+          ctx.moveTo(28, -12);
+          ctx.lineTo(28 + 4, 0);
+          ctx.lineTo(28, 12);
+          ctx.lineTo(26, 0);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#475569";
+          ctx.stroke();
+
+        } else {
+          // Gun configurations
+          const wLen = slot.id === "heavy_sniper" ? 28 : slot.id === "scar_ar" ? 22 : slot.id === "pump_shotgun" ? 18 : 15;
+          
+          // Rear arm
+          ctx.beginPath();
+          ctx.moveTo(0, 10);
+          ctx.lineTo(8, 5);
+          ctx.stroke();
+
+          // Foregrip arm
+          ctx.beginPath();
+          ctx.moveTo(2, -10);
+          ctx.lineTo(14, -4);
+          ctx.stroke();
+
+          // Skin circles
+          ctx.fillStyle = "#fddfbc";
+          ctx.beginPath(); ctx.arc(8, 5, 3.5, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(14, -4, 3.5, 0, Math.PI * 2); ctx.fill();
+
+          // Weapon gun metal body
+          ctx.fillStyle = "#0f172a";
+          ctx.fillRect(4, -3, wLen, 6);
+
+          // Rarity fluorescent barrel tip
+          ctx.fillStyle = slot.color || "#06b6d4";
+          ctx.fillRect(4 + wLen, -2, 3, 4);
+
+          // Accessories: sniper scopes
+          if (slot.id === "heavy_sniper" || slot.id === "scar_ar") {
+            ctx.fillStyle = "#334155";
+            ctx.fillRect(8, -5, 6, 2);
+          }
+        }
+
+        ctx.restore();
+        ctx.restore();
+      };
+
       ctx.save();
       // Apply screenshake
       if (stateRef.current.screenShake > 0) {
@@ -1661,21 +1853,56 @@ export default function GunGame({ onPanicActivate }) {
         ctx.translate(z.x, z.y);
         ctx.rotate(z.angle);
 
-        // Walking leg wobbler animations
+        // Walking leg wobbler animations & rotten bone shaking
         const legWobble = Math.sin(Date.now() * 0.015) * 6;
 
+        // Jointed zombie legs decaying pant legs
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = "#3f6212"; // brownish green pants
+        ctx.beginPath();
+        ctx.moveTo(-2, -5);
+        ctx.lineTo(-8 + legWobble, -6);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(-2, 5);
+        ctx.lineTo(-8 - legWobble, 6);
+        ctx.stroke();
+
+        // Rotten green feet
+        ctx.fillStyle = "#15803d";
+        ctx.fillRect(-10 + legWobble, -8, 3.5, 3);
+        ctx.fillRect(-10 - legWobble, 5, 3.5, 3);
+
+        // Main zombie infected body
         ctx.fillStyle = z.color;
         ctx.beginPath();
         ctx.arc(0, 0, z.radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = "#14532d";
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.8;
         ctx.stroke();
 
-        // Ghoulish spooky arms pointing out
-        ctx.fillStyle = "#15803d";
-        ctx.fillRect(4, -8, 12, 4);
-        ctx.fillRect(4 + legWobble/2, 4, 12, 4);
+        // Ghoulish spooky arms pointing out reaching for brain!
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#15803d";
+        
+        // Reaching zombie left arm grabbing
+        ctx.beginPath();
+        ctx.moveTo(4, -8);
+        ctx.lineTo(16, -7 + legWobble/2);
+        ctx.stroke();
+
+        // Reaching zombie right arm grabbing
+        ctx.beginPath();
+        ctx.moveTo(4, 8);
+        ctx.lineTo(16, 7 - legWobble/2);
+        ctx.stroke();
+
+        // Rotten bony fists
+        ctx.fillStyle = "#166534";
+        ctx.beginPath(); ctx.arc(16, -7 + legWobble/2, 3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(16, 7 - legWobble/2, 3, 0, Math.PI*2); ctx.fill();
 
         // Angry red eyes dots
         ctx.fillStyle = "#ef4444";
@@ -1708,34 +1935,7 @@ export default function GunGame({ onPanicActivate }) {
 
       // 10. Draw living human player model
       if (p.hp > 0 && !p.drivingCarId) {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.angle);
-
-        // Body skin circle
-        ctx.fillStyle = "#06b6d4"; // Cyan skin player
-        ctx.beginPath();
-        ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = p.elevation === 1 ? 3.5 : 1.5;
-        ctx.stroke();
-
-        // Firing nozzle weapon model
-        ctx.fillStyle = "#334155";
-        if (activeSlot.id === "pickaxe") {
-          // stick handle
-          ctx.fillRect(5, -2, 20, 4);
-          ctx.fillStyle = "#cbd5e1"; // pickaxe head
-          ctx.fillRect(20, -9, 4, 18);
-        } else {
-          const wLen = activeSlot.id === "heavy_sniper" ? 27 : 18;
-          ctx.fillRect(5, -3, wLen, 6);
-          ctx.fillStyle = activeSlot.color || "#06b6d4";
-          ctx.fillRect(5 + wLen, -2, 3, 4);
-        }
-
-        ctx.restore();
+        drawRealisticHuman(ctx, p.x, p.y, p.radius, p.angle, "#06b6d4", activeSlot, p.vx || 0, p.vy || 0, true, p.elevation || 0, p.lastSwingTime);
 
         // Name Tag above player
         ctx.fillStyle = "#ffffff";
@@ -1748,23 +1948,10 @@ export default function GunGame({ onPanicActivate }) {
       // 11. Draw Custom opponent AI Bots
       stateRef.current.bots.forEach((b) => {
         if (b.hp <= 0) return;
-        ctx.save();
-        ctx.translate(b.x, b.y);
-        ctx.rotate(b.angle);
-
-        ctx.fillStyle = b.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // gun muzzle
-        ctx.fillStyle = "#334155";
-        ctx.fillRect(5, -2, 16, 4);
-
-        ctx.restore();
+        
+        // Draw Bot using state-aware active weapon
+        const botWeapon = b.activeWeapon || WEAPONS_CATALOG[1];
+        drawRealisticHuman(ctx, b.x, b.y, b.radius, b.angle, b.color, botWeapon, b.vx || 0, b.vy || 0, false, b.elevation || 0, 0);
 
         // Bots over bar tag UI
         ctx.fillStyle = "#ec4899";
