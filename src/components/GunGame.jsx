@@ -1218,7 +1218,7 @@ export default function GunGame({ onPanicActivate }) {
       if (target.hp <= 0) {
         synth.playTone(200, 0.35, "sawtooth", 30, 0.25); // death groans
         const obituary = `${attackerName.toUpperCase()} ☠️ ELIMINATED 💀 ${target.name ? target.name.toUpperCase() : "ZOMBIE"}`;
-        stateRef.current.killFeed.unshift({ id: Date.now(), msg: obituary });
+        stateRef.current.killFeed.unshift({ id: `${Date.now()}-${Math.random()}`, msg: obituary });
         if (stateRef.current.killFeed.length > 5) stateRef.current.killFeed.pop();
 
         if (attackerName === "You") {
